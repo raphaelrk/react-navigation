@@ -38,11 +38,11 @@ class Header extends React.PureComponent {
   };
 
   _getHeaderTitleString(scene) {
-    const sceneOptions = this.props.getScreenDetails(scene).options;
-    if (typeof sceneOptions.headerTitle === 'string') {
-      return sceneOptions.headerTitle;
+    const options = scene.screenDescriptor.options;
+    if (typeof options.headerTitle === 'string') {
+      return options.headerTitle;
     }
-    return sceneOptions.title;
+    return options.title;
   }
 
   _getLastScene(scene) {
@@ -54,7 +54,7 @@ class Header extends React.PureComponent {
     if (!lastScene) {
       return null;
     }
-    const { headerBackTitle } = this.props.getScreenDetails(lastScene).options;
+    const { headerBackTitle } = lastScene.screenDescriptor.options;
     if (headerBackTitle || headerBackTitle === null) {
       return headerBackTitle;
     }
@@ -66,27 +66,20 @@ class Header extends React.PureComponent {
     if (!lastScene) {
       return null;
     }
-    return this.props.getScreenDetails(lastScene).options
-      .headerTruncatedBackTitle;
+    return lastScene.screenDescriptor.options.headerTruncatedBackTitle;
   }
 
-  _navigateBack = () => {
-    requestAnimationFrame(() => {
-      this.props.navigation.goBack();
-    });
-  };
-
   _renderTitleComponent = props => {
-    const details = this.props.getScreenDetails(props.scene);
-    const headerTitle = details.options.headerTitle;
+    const { options } = props.scene.screenDescriptor;
+    const headerTitle = options.headerTitle;
     if (React.isValidElement(headerTitle)) {
       return headerTitle;
     }
     const titleString = this._getHeaderTitleString(props.scene);
 
-    const titleStyle = details.options.headerTitleStyle;
-    const color = details.options.headerTintColor;
-    const allowFontScaling = details.options.headerTitleAllowFontScaling;
+    const titleStyle = options.headerTitleStyle;
+    const color = options.headerTintColor;
+    const allowFontScaling = options.headerTitleAllowFontScaling;
 
     // On iOS, width of left/right components depends on the calculated
     // size of the title.
@@ -118,7 +111,7 @@ class Header extends React.PureComponent {
   };
 
   _renderLeftComponent = props => {
-    const { options } = this.props.getScreenDetails(props.scene);
+    const { options } = props.scene.screenDescriptor;
     if (
       React.isValidElement(options.headerLeft) ||
       options.headerLeft === null
@@ -136,9 +129,15 @@ class Header extends React.PureComponent {
       ? (this.props.layout.initWidth - this.state.widths[props.scene.key]) / 2
       : undefined;
     const RenderedLeftComponent = options.headerLeft || HeaderBackButton;
+    const goBack = () => {
+      // Go back on next tick because button ripple effect needs to happen on Android
+      requestAnimationFrame(() => {
+        this.props.navigation.goBack(props.scene.screenDescriptor.state.key);
+      });
+    };
     return (
       <RenderedLeftComponent
-        onPress={this._navigateBack}
+        onPress={goBack}
         pressColorAndroid={options.headerPressColorAndroid}
         tintColor={options.headerTintColor}
         title={backButtonTitle}
@@ -150,8 +149,7 @@ class Header extends React.PureComponent {
   };
 
   _renderRightComponent = props => {
-    const details = this.props.getScreenDetails(props.scene);
-    const { headerRight } = details.options;
+    const { headerRight } = props.scene.screenDescriptor.options;
     return headerRight || null;
   };
 
@@ -289,8 +287,7 @@ class Header extends React.PureComponent {
       ...rest
     } = this.props;
 
-    const { options } = this.props.getScreenDetails(scene);
-    const { headerStyle } = options;
+    const { headerStyle } = scene.screenDescriptor.options;
     const appBarHeight = Platform.OS === 'ios' ? (isLandscape ? 32 : 44) : 56;
     const containerStyles = [
       styles.container,

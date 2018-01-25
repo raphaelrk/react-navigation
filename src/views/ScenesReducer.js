@@ -59,7 +59,12 @@ function areRoutesShallowEqual(one, two) {
   return shallowEqual(one, two);
 }
 
-export default function ScenesReducer(scenes, nextState, prevState) {
+export default function ScenesReducer(
+  scenes,
+  nextState,
+  prevState,
+  sceneDescriptors
+) {
   if (prevState === nextState) {
     return scenes;
   }
@@ -80,12 +85,17 @@ export default function ScenesReducer(scenes, nextState, prevState) {
   const nextKeys = new Set();
   nextState.routes.forEach((route, index) => {
     const key = SCENE_KEY_PREFIX + route.key;
+
+    let screenDescriptor =
+      sceneDescriptors && sceneDescriptors.find(d => d.state.key === route.key);
+
     const scene = {
       index,
       isActive: false,
       isStale: false,
       key,
       route,
+      screenDescriptor,
     };
     invariant(
       !nextKeys.has(key),
@@ -109,12 +119,16 @@ export default function ScenesReducer(scenes, nextState, prevState) {
       if (freshScenes.has(key)) {
         return;
       }
+      const lastScene = scenes.find(scene => scene.route.key === route.key);
+      const screenDescriptor = lastScene && lastScene.screenDescriptor;
+
       staleScenes.set(key, {
         index,
         isActive: false,
         isStale: true,
         key,
         route,
+        screenDescriptor,
       });
     });
   }

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Dimensions, Platform, ScrollView } from 'react-native';
 
-import createNavigator from './createNavigator';
+import createNavigatorDEPRECATED from './createNavigatorDEPRECATED';
 import createNavigationContainer from '../createNavigationContainer';
 import TabRouter from '../routers/TabRouter';
 import DrawerScreen from '../views/Drawer/DrawerScreen';
@@ -70,7 +70,7 @@ const DrawerNavigator = (routeConfigs, config = {}) => {
   const drawerRouter = TabRouter(
     {
       [drawerCloseRoute]: {
-        screen: createNavigator(
+        screen: createNavigatorDEPRECATED(
           contentRouter,
           routeConfigs,
           config,
@@ -89,7 +89,7 @@ const DrawerNavigator = (routeConfigs, config = {}) => {
     }
   );
 
-  const navigator = createNavigator(
+  const navigator = createNavigatorDEPRECATED(
     drawerRouter,
     routeConfigs,
     config,

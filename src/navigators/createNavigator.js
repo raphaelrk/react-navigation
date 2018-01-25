@@ -1,28 +1,48 @@
 import React from 'react';
 
-/**
- * Creates a navigator based on a router and a view that renders the screens.
- */
-export default function createNavigator(
-  router,
-  routeConfigs,
-  navigatorConfig,
-  navigatorType
-) {
-  return NavigationView => {
-    class Navigator extends React.Component {
-      static router = router;
+import getChildEventSubscriber from '../getChildEventSubscriber';
+import addNavigationHelpers from '../addNavigationHelpers';
 
-      static routeConfigs = routeConfigs;
-      static navigatorConfig = navigatorConfig;
-      static navigatorType = navigatorType;
-      static navigationOptions = null;
+function createNavigator(NavigatorView, router, navigationConfig) {
+  class Navigator extends React.Component {
+    static router = router;
+    static navigationOptions = null;
 
-      render() {
-        return <NavigationView {...this.props} router={router} />;
-      }
+    render() {
+      const { navigation, screenProps } = this.props;
+      const { dispatch, state, addListener } = navigation;
+      const { routes, index, isTransitioning } = state;
+
+      const sceneDescriptors = routes.map(route => {
+        const getComponent = () =>
+          router.getComponentForRouteName(route.routeName);
+
+        const childNavigation = addNavigationHelpers({
+          dispatch,
+          state: route,
+          addListener: getChildEventSubscriber(addListener, route.key),
+        });
+        const options = router.getScreenOptions(childNavigation, screenProps);
+        return {
+          getComponent,
+          options,
+          state: route,
+          navigation: childNavigation,
+        };
+      });
+
+      return (
+        <NavigatorView
+          navigation={navigation}
+          navigationConfig={navigationConfig}
+          sceneDescriptors={sceneDescriptors}
+          index={index}
+          isTransitioning={isTransitioning}
+        />
+      );
     }
-
-    return Navigator;
-  };
+  }
+  return Navigator;
 }
+
+export default createNavigator;

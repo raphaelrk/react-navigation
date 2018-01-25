@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import clamp from 'clamp';
 import {
@@ -11,20 +11,19 @@ import {
   Easing,
 } from 'react-native';
 
-import Card from './Card';
+import Card from './StackViewCard';
 import Header from '../Header/Header';
 import NavigationActions from '../../NavigationActions';
 import addNavigationHelpers from '../../addNavigationHelpers';
-import getChildEventSubscriber from '../../getChildEventSubscriber';
 import SceneView from '../SceneView';
 
-import TransitionConfigs from './TransitionConfigs';
+import TransitionConfigs from './StackViewTransitionConfigs';
 
 const emptyFunction = () => {};
 
 /**
  * The max duration of the card animation in milliseconds after released gesture.
- * The actual duration should be always less then that because the rest distance
+ * The actual duration should be always less then that because the rest distance 
  * is always less then the full distance of the layout.
  */
 const ANIMATION_DURATION = 500;
@@ -56,7 +55,7 @@ const animatedSubscribeValue = animatedValue => {
   }
 };
 
-class CardStack extends React.Component {
+class StackViewLayout extends React.Component {
   /**
    * Used to identify the starting point of the position when the gesture starts, such that it can
    * be updated according to its relative position. This means that a card can effectively be
@@ -77,65 +76,29 @@ class CardStack extends React.Component {
    */
   _immediateIndex = null;
 
-  _screenDetails = {};
-
-  componentWillReceiveProps(props) {
-    if (props.screenProps !== this.props.screenProps) {
-      this._screenDetails = {};
-    }
-    props.scenes.forEach(newScene => {
-      if (
-        this._screenDetails[newScene.key] &&
-        this._screenDetails[newScene.key].state !== newScene.route
-      ) {
-        this._screenDetails[newScene.key] = null;
-      }
-    });
-  }
-
-  _getScreenDetails = scene => {
-    const { screenProps, navigation, router } = this.props;
-    let screenDetails = this._screenDetails[scene.key];
-    if (!screenDetails || screenDetails.state !== scene.route) {
-      const screenNavigation = addNavigationHelpers({
-        dispatch: navigation.dispatch,
-        state: scene.route,
-        addListener: getChildEventSubscriber(
-          navigation.addListener,
-          scene.route.key
-        ),
-      });
-      screenDetails = {
-        state: scene.route,
-        navigation: screenNavigation,
-        options: router.getScreenOptions(screenNavigation, screenProps),
-      };
-      this._screenDetails[scene.key] = screenDetails;
-    }
-    return screenDetails;
-  };
-
   _renderHeader(scene, headerMode) {
-    const { header } = this._getScreenDetails(scene).options;
+    const { options } = scene.screenDescriptor;
+    const { header } = options;
 
     if (typeof header !== 'undefined' && typeof header !== 'function') {
       return header;
     }
 
-    const renderHeader = header || (props => <Header {...props} />);
+    const renderHeader = header || ((props: *) => <Header {...props} />);
     const {
       headerLeftInterpolator,
       headerTitleInterpolator,
       headerRightInterpolator,
     } = this._getTransitionConfig();
 
+    // We need to explicitly exclude `mode` since Flow doesn't see
+    // mode: headerMode override below and reports prop mismatch
     const { mode, ...passProps } = this.props;
 
     return renderHeader({
       ...passProps,
       scene,
       mode: headerMode,
-      getScreenDetails: this._getScreenDetails,
       leftInterpolator: headerLeftInterpolator,
       titleInterpolator: headerTitleInterpolator,
       rightInterpolator: headerRightInterpolator,
@@ -156,7 +119,7 @@ class CardStack extends React.Component {
     animatedSubscribeValue(props.position);
   }
 
-  _reset(resetToIndex, duration) {
+  _reset(resetToIndex, duration): void {
     Animated.timing(this.props.position, {
       toValue: resetToIndex,
       duration,
@@ -195,10 +158,19 @@ class CardStack extends React.Component {
     if (headerMode === 'float') {
       floatingHeader = this._renderHeader(this.props.scene, headerMode);
     }
-    const { navigation, position, layout, scene, scenes, mode } = this.props;
+    const {
+      navigation,
+      position,
+      layout,
+      scene,
+      scenes,
+      mode,
+      sceneDescriptors,
+    } = this.props;
     const { index } = navigation.state;
     const isVertical = mode === 'modal';
-    const { options } = this._getScreenDetails(scene);
+    const { options } = scene.screenDescriptor;
+
     const gestureDirectionInverted = options.gestureDirection === 'inverted';
 
     const responder = PanResponder.create({
@@ -207,7 +179,7 @@ class CardStack extends React.Component {
         this._reset(index, 0);
       },
       onPanResponderGrant: () => {
-        position.stopAnimation(value => {
+        position.stopAnimation((value: number) => {
           this._isResponding = true;
           this._gestureStartValue = value;
         });
@@ -231,9 +203,12 @@ class CardStack extends React.Component {
           ? axisLength - (currentDragPosition - currentDragDistance)
           : currentDragPosition - currentDragDistance;
         // Compare to the gesture distance relavant to card or modal
+
+        const { options } = scene.screenDescriptor;
+
         const {
           gestureResponseDistance: userGestureResponseDistance = {},
-        } = this._getScreenDetails(scene).options;
+        } = options;
         const gestureResponseDistance = isVertical
           ? userGestureResponseDistance.vertical ||
             GESTURE_RESPONSE_DISTANCE_VERTICAL
@@ -336,7 +311,7 @@ class CardStack extends React.Component {
     return (
       <View {...handlers} style={containerStyle}>
         <View style={styles.scenes}>
-          {scenes.map(s => this._renderCard(s))}
+          {scenes.map((s: *) => this._renderCard(s))}
         </View>
         {floatingHeader}
       </View>
@@ -353,8 +328,10 @@ class CardStack extends React.Component {
     return 'float';
   }
 
-  _renderInnerScene(SceneComponent, scene) {
-    const { navigation } = this._getScreenDetails(scene);
+  _renderInnerScene(scene) {
+    const { options, navigation, getComponent } = scene.screenDescriptor;
+    const SceneComponent = getComponent();
+
     const { screenProps } = this.props;
     const headerMode = this._getHeaderMode();
     if (headerMode === 'screen') {
@@ -396,10 +373,6 @@ class CardStack extends React.Component {
     const style =
       screenInterpolator && screenInterpolator({ ...this.props, scene });
 
-    const SceneComponent = this.props.router.getComponentForRouteName(
-      scene.route.routeName
-    );
-
     return (
       <Card
         {...this.props}
@@ -407,7 +380,7 @@ class CardStack extends React.Component {
         style={[style, this.props.cardStyle]}
         scene={scene}
       >
-        {this._renderInnerScene(SceneComponent, scene)}
+        {this._renderInnerScene(scene)}
       </Card>
     );
   };
@@ -427,4 +400,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CardStack;
+export default StackViewLayout;
