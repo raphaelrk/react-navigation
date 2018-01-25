@@ -1,52 +1,47 @@
 import React from 'react';
 import { Platform } from 'react-native';
 
-import createNavigator from './createNavigatorDEPRECATED';
+import createNavigator from './createNavigator';
 import createNavigationContainer from '../createNavigationContainer';
 import TabRouter from '../routers/TabRouter';
 import TabView from '../views/TabView/TabView';
 import TabBarTop from '../views/TabView/TabBarTop';
 import TabBarBottom from '../views/TabView/TabBarBottom';
 
-import NavigatorTypes from './NavigatorTypes';
-
-// A tab navigators props are the intersection between
-// the base navigator props (navgiation, screenProps, etc)
-// and the view's props
-
 const TabNavigator = (routeConfigs, config = {}) => {
   // Use the look native to the platform by default
-  const mergedConfig = { ...TabNavigator.Presets.Default, ...config };
-  const {
-    tabBarComponent,
-    tabBarPosition,
-    tabBarOptions,
-    swipeEnabled,
-    animationEnabled,
-    configureTransition,
-    initialLayout,
-    ...tabsConfig
-  } = mergedConfig;
+  const tabsConfig = { ...TabNavigator.Presets.Default, ...config };
+  // const {
+  //   tabBarComponent,
+  //   tabBarPosition,
+  //   tabBarOptions,
+  //   swipeEnabled,
+  //   animationEnabled,
+  //   configureTransition,
+  //   initialLayout,
+  //   ...tabsConfig
+  // } = tabsConfig;
 
   const router = TabRouter(routeConfigs, tabsConfig);
 
-  const navigator = createNavigator(
-    router,
-    routeConfigs,
-    config,
-    NavigatorTypes.TABS
-  )(props => (
-    <TabView
-      {...props}
-      tabBarComponent={tabBarComponent}
-      tabBarPosition={tabBarPosition}
-      tabBarOptions={tabBarOptions}
-      swipeEnabled={swipeEnabled}
-      animationEnabled={animationEnabled}
-      configureTransition={configureTransition}
-      initialLayout={initialLayout}
-    />
-  ));
+  const navigator = createNavigator(TabView, router, tabsConfig);
+  // const navigator = createNavigator(
+  //   router,
+  //   routeConfigs,
+  //   config,
+  //   NavigatorTypes.TABS
+  // )(props => (
+  //   <TabView
+  //     {...props}
+  //     tabBarComponent={tabBarComponent}
+  //     tabBarPosition={tabBarPosition}
+  //     tabBarOptions={tabBarOptions}
+  //     swipeEnabled={swipeEnabled}
+  //     animationEnabled={animationEnabled}
+  //     configureTransition={configureTransition}
+  //     initialLayout={initialLayout}
+  //   />
+  // ));
 
   return createNavigationContainer(navigator);
 };

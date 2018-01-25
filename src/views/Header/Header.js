@@ -132,7 +132,7 @@ class Header extends React.PureComponent {
     const goBack = () => {
       // Go back on next tick because button ripple effect needs to happen on Android
       requestAnimationFrame(() => {
-        this.props.navigation.goBack(props.scene.screenDescriptor.state.key);
+        this.props.navigation.goBack(props.scene.screenDescriptor.key);
       });
     };
     return (

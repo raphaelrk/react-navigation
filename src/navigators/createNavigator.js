@@ -24,6 +24,7 @@ function createNavigator(NavigatorView, router, navigationConfig) {
         });
         const options = router.getScreenOptions(childNavigation, screenProps);
         return {
+          key: route.key,
           getComponent,
           options,
           state: route,
